@@ -97,11 +97,11 @@ app.get('/wishlist/albums/:id', function(req, res, next) {
 })
 
 ////
-app.get('/search', (req, res) => {
-  console.log('text: ', req.query.text)
+app.get('/search/:text', (req, res) => {
+  console.log('text: ', req.params.text)
   fetch(
     process.env.DISCOG_SEARCH +
-      req.query.text +
+      req.params.text +
       '}&secret=' +
       process.env.DISCOGS_SECRET +
       '&key=' +
