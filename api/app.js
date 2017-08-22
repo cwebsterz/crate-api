@@ -24,7 +24,6 @@ app.use(bodyParser.json())
 
 ////CREATE////
 app.post('/profiles/:id/crate', function(req, res, next) {
-  console.log('profile/:id/wishlist')
   const a = pathOr(null, ['body'], req)
   console.log('body: ', a)
   const checkResults = checkAlbumReqdFields(a)
@@ -109,7 +108,6 @@ app.get('/profiles/:id', function(req, res, next) {
 ////
 
 app.get('/search/:text', (req, res) => {
-  console.log('text: ', req.params.text)
   fetch(
     process.env.DISCOG_SEARCH +
       req.params.text +
