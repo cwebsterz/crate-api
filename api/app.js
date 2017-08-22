@@ -23,7 +23,8 @@ app.use(cors({ credentials: true }))
 app.use(bodyParser.json())
 
 ////CREATE////
-app.post('/crate/albums', function(req, res, next) {
+app.post('/profiles/:id/crate', function(req, res, next) {
+  console.log('profile/:id/wishlist')
   const a = pathOr(null, ['body'], req)
   console.log('body: ', a)
   const checkResults = checkAlbumReqdFields(a)
@@ -40,7 +41,8 @@ app.post('/crate/albums', function(req, res, next) {
 
 ////
 
-app.post('/wishlist/albums', function(req, res, next) {
+app.post('/profiles/:id/wishlist', function(req, res, next) {
+  console.log('profile/:id/wishlist')
   const wa = pathOr(null, ['body'], req)
   const checkResults = checkAlbumReqdFields(wa)
   if (checkResults.length > 0) {
@@ -66,15 +68,37 @@ app.post('/profiles', function(req, res, next) {
       })
     )
   }
-  dal.createWishlistAlbum(profile, callbackHelper(next, res))
+  dal.createProfile(profile, callbackHelper(next, res))
 })
 
 ////READ////
-app.get('/crate/albums/:id', function(req, res, next) {
-  const albumId = pathOr(null, ['params', 'id'], req)
-  dal.getAlbum(albumId, function(err, data) {
+app.get('/profiles/:id/crate/:albumId', function(req, res, next) {
+  const id = pathOr(null, ['params', 'id'], req)
+  const albumId = pathOr(null, ['params', 'albumId'], req)
+  dal.getAlbum(id, albumId, function(err, data) {
     if (err) return next(new HTTPError(err.status, err.message, err))
-    if (albumId) {
+    res.status(200).send(data)
+  })
+})
+
+////
+
+app.get('/profiles/:id/wishlist/:wishlistAlbumId', function(req, res, next) {
+  const id = pathOr(null, ['params', 'id'], req)
+  const wishlistAlbumId = pathOr(null, ['params', 'wishlistAlbumId'], req)
+  dal.getWishlistAlbum(id, wishlistAlbumId, function(err, data) {
+    if (err) return next(new HTTPError(err.status, err.message, err))
+    res.status(200).send(data)
+  })
+})
+
+////
+
+app.get('/profiles/:id', function(req, res, next) {
+  const profileId = pathOr(null, ['params', 'id'], req)
+  dal.getProfile(profileId, function(err, data) {
+    if (err) return next(new HTTPError(err.status, err.message, err))
+    if (profileId) {
       res.status(200).send(data)
     } else {
       return next(new HTTPError(400, 'Missing id in path'))
@@ -84,19 +108,6 @@ app.get('/crate/albums/:id', function(req, res, next) {
 
 ////
 
-app.get('/wishlist/albums/:id', function(req, res, next) {
-  const wishlistAlbumId = pathOr(null, ['params', 'id'], req)
-  dal.getWishlistAlbum(wishlistAlbumId, function(err, data) {
-    if (err) return next(new HTTPError(err.status, err.message, err))
-    if (wishlistAlbumId) {
-      res.status(200).send(data)
-    } else {
-      return next(new HTTPError(400, 'Missing id in path'))
-    }
-  })
-})
-
-////
 app.get('/search/:text', (req, res) => {
   console.log('text: ', req.params.text)
   fetch(
@@ -132,6 +143,25 @@ app.put('/wishlist/albums/:id', function(req, res, next) {
   dal.updateWishlistAlbum(body, wishlistAlbumId, callbackHelper(next, res))
 })
 
+////
+
+app.put('/profiles/:id', function(req, res, next) {
+  const profileId = pathOr(null, ['params', 'id'], req)
+  const body = pathOr(null, ['body'], req)
+  const checkResults = checkProfileReqdFields(body)
+  if (checkResults.length > 0) {
+    return next(
+      new HTTPError(400, 'Bad request, missing required fields: ', {
+        fields: checkResults
+      })
+    )
+  }
+
+  if (!body || keys(body).length === 0)
+    return next(new HTTPError(400, 'Missing album in request body.'))
+  dal.updateProfile(body, profileId, callbackHelper(next, res))
+})
+
 ////DELETE////
 app.delete('/crate/albums/:id', function(req, res, next) {
   const albumId = pathOr(null, ['params', 'id'], req)
@@ -148,29 +178,50 @@ app.delete('/wishlist/albums/:id', function(req, res, next) {
 })
 
 ////LIST////
-app.get('/crate/albums', function(req, res, next) {
-  const albumFilter = pathOr(null, ['query', 'filter'], req)
-  const limit = pathOr(10, ['query', 'limit'], req)
-  const lastItem = pathOr(null, ['query', 'lastItem'], req)
+app.get('/profiles/:id', function(req, res, next) {
+  const profileId = req.params.id
 
-  dal.listAlbums(
-    lastItem,
-    albumFilter,
-    Number(limit),
-    callbackHelper(next, res)
-  )
+  dal.listAlbums(profileId, callbackHelper(next, res))
+})
+
+// app.get('/crate/albums', function(req, res, next) {
+//   const albumFilter = pathOr(null, ['query', 'filter'], req)
+//   const limit = pathOr(10, ['query', 'limit'], req)
+//   const lastItem = pathOr(null, ['query', 'lastItem'], req)
+//
+//   dal.listAlbums(
+//     lastItem,
+//     albumFilter,
+//     Number(limit),
+//     callbackHelper(next, res)
+//   )
+// })
+////
+
+app.get('/profiles/:id/crate', function(req, res, next) {
+  const profileId = req.params.id
+  console.log('profiles/:id/crate', profileId)
+  dal.listAlbums(profileId, callbackHelper(next, res))
 })
 
 ////
 
-app.get('/wishlist/albums', function(req, res, next) {
-  const albumFilter = pathOr(null, ['query', 'filter'], req)
+app.get('/profiles/:id/wishlist', function(req, res, next) {
+  const profileId = req.params.id
+  console.log('profiles/:id/wishlist', profileId)
+  dal.listWishlistAlbums(profileId, callbackHelper(next, res))
+})
+
+////
+
+app.get('/profiles', function(req, res, next) {
+  const profileFilter = pathOr(null, ['query', 'filter'], req)
   const limit = pathOr(10, ['query', 'limit'], req)
   const lastItem = pathOr(null, ['query', 'lastItem'], req)
 
-  dal.listWishlistAlbums(
+  dal.listProfiles(
     lastItem,
-    albumFilter,
+    profileFilter,
     Number(limit),
     callbackHelper(next, res)
   )
